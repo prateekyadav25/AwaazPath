@@ -88,3 +88,4 @@ sudo certbot --nginx -d yourdomain.com
 1. **Never Commit Secrets:** The `.gitignore` file includes `.env*` to prevent accidental commits of keys.
 2. **Server-Side Only:** Next.js prefixes client-accessible variables with `NEXT_PUBLIC_`. Note that `GNANI_API_KEY` intentionally does **not** have this prefix, ensuring it is never exposed in browser bundles.
 3. **Credit Conservation:** Keep `Credit Saver Mode` enabled so that users cannot trigger unexpected high-volume API requests against your 5,000 credit allocation.
+

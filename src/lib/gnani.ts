@@ -115,7 +115,17 @@ export async function callGnaniPrismaSTT(
       let errorDetails = '';
       try {
         const errorJson = await response.json();
-        errorDetails = errorJson.message || errorJson.error || JSON.stringify(errorJson);
+        if (typeof errorJson.message === 'string') {
+          errorDetails = errorJson.message;
+        } else if (typeof errorJson.error === 'string') {
+          errorDetails = errorJson.error;
+        } else if (errorJson.error && typeof errorJson.error.message === 'string') {
+          errorDetails = errorJson.error.message;
+        } else if (errorJson.detail) {
+          errorDetails = typeof errorJson.detail === 'string' ? errorJson.detail : JSON.stringify(errorJson.detail);
+        } else {
+          errorDetails = JSON.stringify(errorJson);
+        }
       } catch {
         errorDetails = await response.text();
       }
@@ -190,7 +200,7 @@ export async function callGnaniTimbreTTS(
   }
 
   const model = params.model || process.env.GNANI_TTS_MODEL || 'timbre-v3.0';
-  const voice = params.voice || 'Nalini';
+  const voice = params.voice || 'Shivani';
   const language = params.language || 'hi-IN';
   const speed = params.speed || 1.0;
 
@@ -229,7 +239,17 @@ export async function callGnaniTimbreTTS(
       let errorDetails = '';
       try {
         const errorJson = await response.json();
-        errorDetails = errorJson.message || errorJson.error || JSON.stringify(errorJson);
+        if (typeof errorJson.message === 'string') {
+          errorDetails = errorJson.message;
+        } else if (typeof errorJson.error === 'string') {
+          errorDetails = errorJson.error;
+        } else if (errorJson.error && typeof errorJson.error.message === 'string') {
+          errorDetails = errorJson.error.message;
+        } else if (errorJson.detail) {
+          errorDetails = typeof errorJson.detail === 'string' ? errorJson.detail : JSON.stringify(errorJson.detail);
+        } else {
+          errorDetails = JSON.stringify(errorJson);
+        }
       } catch {
         errorDetails = await response.text();
       }

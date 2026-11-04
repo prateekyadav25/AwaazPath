@@ -145,3 +145,4 @@ export const MOCK_PAST_SESSIONS: InterviewSession[] = [
     isDemo: true,
   },
 ];
+

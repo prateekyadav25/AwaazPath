@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const text = (body.text || '').trim();
-    const voice = body.voice || 'Nalini';
+    const voice = body.voice || 'Shivani';
     const language = body.language || 'hi-IN';
     const speed = typeof body.speed === 'number' ? body.speed : 1.0;
     const model = body.model || config.ttsModel;

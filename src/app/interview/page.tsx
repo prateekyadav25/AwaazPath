@@ -365,10 +365,10 @@ function MockInterviewContent() {
           {apiError && (
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-start gap-3">
               <AlertCircle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
-              <div>
+              <div className="space-y-1">
                 <p className="font-semibold">{apiError}</p>
-                <p className="text-[11px] text-amber-300/80 mt-1">
-                  You can set your GNANI_API_KEY in .env file to enable live speech transcription.
+                <p className="text-[11px] text-amber-300/80">
+                  Tip: Make sure you speak clearly into the microphone. You can also click &ldquo;Test with Hinglish Demo Answer&rdquo; above to verify the complete evaluation and coaching flow.
                 </p>
               </div>
             </div>
@@ -466,7 +466,7 @@ function MockInterviewContent() {
                       <AudioPlayer
                         textToSpeak={evaluation.betterSampleAnswer}
                         language="en-IN"
-                        voice="Nalini"
+                        voice="Shivani"
                         label="Listen to Improved Answer with Gnani Timbre"
                         creditSaverMode={creditSaver}
                       />

@@ -34,7 +34,7 @@ test('Gnani AI Client - Request Construction & Security Verification', async (t)
 
   await t.test('constructs Timbre TTS payload according to official audio_config schema', () => {
     const text = 'नमस्ते, आप कैसे हैं?';
-    const voice = 'Nalini';
+    const voice = 'Shivani';
     const model = 'timbre-v3.0';
     const language = 'hi-IN';
 
@@ -56,7 +56,7 @@ test('Gnani AI Client - Request Construction & Security Verification', async (t)
     assert.strictEqual(payload.audio_config.container, 'wav');
     assert.strictEqual(payload.audio_config.encoding, 'linear_pcm');
     assert.strictEqual(payload.audio_config.sample_rate, 24000);
-    assert.strictEqual(payload.voice, 'Nalini');
+    assert.strictEqual(payload.voice, 'Shivani');
   });
 
   await t.test('validates audio buffer limits (rejects >15MB payloads)', () => {
@@ -85,3 +85,4 @@ test('Gnani AI Client - Request Construction & Security Verification', async (t)
     assert.strictEqual(mockPrismaResponse.detected_language_code, 'hi-IN');
   });
 });
+

@@ -84,3 +84,4 @@ test('AI Answer Evaluation Engine - Rubric Integrity & Scoring', async (t) => {
     assert.ok(res.overallScore >= 0, 'Score must be non-negative');
   });
 });
+

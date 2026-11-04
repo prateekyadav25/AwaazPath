@@ -98,3 +98,4 @@ export interface AssistantMessage {
   timestamp: number;
   category?: 'explanation' | 'hinglish-conversion' | 'vocabulary' | 'structure' | 'general';
 }
+

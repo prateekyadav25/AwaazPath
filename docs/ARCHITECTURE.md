@@ -100,3 +100,4 @@ export interface RubricScores {
    - Recording duration capped at 30 seconds (conforming to Prisma REST requirements).
    - Text synthesis payloads capped at 2,000 characters.
    - 25-second server timeout on upstream Gnani endpoints to prevent hanging sockets.
+

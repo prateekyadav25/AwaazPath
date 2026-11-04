@@ -1128,3 +1128,4 @@ export function getQuestionsByCategory(category: string): InterviewQuestion[] {
 export function getQuestionById(id: string): InterviewQuestion | undefined {
   return QUESTIONS.find((q) => q.id === id);
 }
+

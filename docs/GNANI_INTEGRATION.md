@@ -111,3 +111,4 @@ export async function callGnaniTimbreTTS(params: TimbreTTSParams): Promise<{ aud
 | `402 / 429` | Programme credits or quota exhausted | Alerts user that 5,000 credit limit was reached; switches to demo sandbox |
 | `413 Payload Too Large` | Audio exceeds size/duration | Recommends speaking within the 30-second limit |
 | `504 Timeout` | Gateway or network latency | 25-second abort controller prevents hanging interface |
+

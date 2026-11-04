@@ -189,7 +189,7 @@ export default function AssistantPage() {
                     <AudioPlayer
                       textToSpeak={msg.content.replace(/[*#]/g, '')}
                       language="en-IN"
-                      voice="Nalini"
+                      voice="Shivani"
                       label="Listen to Audio Answer"
                       creditSaverMode={creditSaver}
                     />
@@ -251,3 +251,4 @@ export default function AssistantPage() {
     </div>
   );
 }
+

@@ -345,11 +345,11 @@ export default function SettingsPage() {
               Gnani Timbre Coach Voice
             </label>
             <select
-              value={preferences.voiceGender === 'female' ? 'Nalini' : 'Rohan'}
+              value={preferences.voiceGender === 'female' ? 'Shivani' : 'Avinash'}
               onChange={(e) =>
                 updatePreference(
                   'voiceGender',
-                  e.target.value === 'Rohan' ? 'male' : 'female'
+                  e.target.value === 'Avinash' ? 'male' : 'female'
                 )
               }
               className="w-full rounded-xl bg-surface-200 border border-surface-50 p-3 text-xs text-gray-100 focus:outline-none"
@@ -399,3 +399,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

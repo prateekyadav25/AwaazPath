@@ -27,7 +27,7 @@ export default function AnswerImprovementStudio() {
   const [activeTab, setActiveTab] = useState<'text' | 'mic'>('text');
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [selectedVoice, setSelectedVoice] = useState<'Nalini' | 'Rohan'>('Nalini');
+  const [selectedVoice, setSelectedVoice] = useState<'Shivani' | 'Avinash'>('Shivani');
 
   const handleImprove = () => {
     if (!inputText.trim()) return;
@@ -35,8 +35,31 @@ export default function AnswerImprovementStudio() {
     setEvaluation(result);
   };
 
-  const handleAudioTranscribed = (blob: Blob, duration: number) => {
-    // For studio speech dictation
+  const handleAudioTranscribed = async (blob: Blob, duration: number) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', blob, 'dictation.wav');
+      formData.append('language_code', 'indic-auto');
+      formData.append('format', 'codemix');
+      formData.append('model', 'prisma-v3.0');
+
+      const response = await fetch('/api/gnani/stt', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.success && data.transcript && data.transcript.trim().length > 0) {
+        setInputText(data.transcript);
+        const result = evaluateAnswer(data.transcript, 'fresher-1');
+        setEvaluation(result);
+        return;
+      }
+    } catch (e) {
+      console.warn('Studio live STT fallback', e);
+    }
+
+    // Fallback demonstration text
     const demoText =
       'Sir humara final year project KisanDirect portal tha. Basically farmers aur local mandi ko connect karne ke liye banaya tha. Mera role backend me Node js aur PostgreSQL handle karna tha.';
     setInputText(demoText);
@@ -227,7 +250,7 @@ export default function AnswerImprovementStudio() {
                 <AudioPlayer
                   textToSpeak={evaluation.simpleFresherAnswer}
                   language="en-IN"
-                  voice="Rohan"
+                  voice="Avinash"
                   label="Listen (Natural Voice)"
                 />
                 <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
@@ -290,3 +313,4 @@ export default function AnswerImprovementStudio() {
     </div>
   );
 }
+

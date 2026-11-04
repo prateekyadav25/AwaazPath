@@ -19,6 +19,58 @@ interface AudioRecorderProps {
   creditSaverMode?: boolean;
 }
 
+// Helper to convert Web AudioBuffer to authentic 16kHz mono 16-bit PCM RIFF WAV supported by Gnani Prisma
+function audioBufferToWav(buffer: AudioBuffer): Blob {
+  const numChannels = 1;
+  const targetSampleRate = 16000;
+  const originalData = buffer.getChannelData(0);
+
+  let samples: Float32Array;
+  if (buffer.sampleRate === targetSampleRate) {
+    samples = originalData;
+  } else {
+    const ratio = buffer.sampleRate / targetSampleRate;
+    const newLength = Math.max(1, Math.round(originalData.length / ratio));
+    samples = new Float32Array(newLength);
+    for (let i = 0; i < newLength; i++) {
+      const idx = Math.min(originalData.length - 1, Math.floor(i * ratio));
+      samples[i] = originalData[idx];
+    }
+  }
+
+  const dataLength = samples.length * 2;
+  const arrayBuffer = new ArrayBuffer(44 + dataLength);
+  const view = new DataView(arrayBuffer);
+
+  // "RIFF"
+  view.setUint32(0, 0x52494646, false);
+  view.setUint32(4, 36 + dataLength, true);
+  view.setUint32(8, 0x57415645, false);
+
+  // "fmt "
+  view.setUint32(12, 0x666d7420, false);
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, targetSampleRate, true);
+  view.setUint32(28, targetSampleRate * numChannels * 2, true);
+  view.setUint16(32, numChannels * 2, true);
+  view.setUint16(34, 16, true); // 16-bit
+
+  // "data"
+  view.setUint32(36, 0x64617461, false);
+  view.setUint32(40, dataLength, true);
+
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    offset += 2;
+  }
+
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
 export const AudioRecorder: React.FC<AudioRecorderProps> = ({
   onAudioReady,
   maxDurationSeconds = 30, // 30s recommended limit for Prisma short audio
@@ -130,11 +182,8 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         }
       };
 
-      recorder.onstop = () => {
-        const fullBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        setAudioBlob(fullBlob);
-        const url = URL.createObjectURL(fullBlob);
-        setAudioUrl(url);
+      recorder.onstop = async () => {
+        const rawBlob = new Blob(audioChunksRef.current, { type: mimeType });
 
         // Stop all stream tracks to free microphone hardware
         stream.getTracks().forEach((track) => track.stop());
@@ -143,6 +192,25 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
           audioContextRef.current.close().catch(() => {});
         }
+
+        // Convert raw recorded audio to genuine 16kHz mono 16-bit PCM WAV for Gnani Prisma STT
+        let finalWavBlob = rawBlob;
+        try {
+          const AudioCtx =
+            window.AudioContext ||
+            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          const decodeCtx = new AudioCtx();
+          const arrayBuf = await rawBlob.arrayBuffer();
+          const audioBuffer = await decodeCtx.decodeAudioData(arrayBuf);
+          finalWavBlob = audioBufferToWav(audioBuffer);
+          decodeCtx.close().catch(() => {});
+        } catch (e) {
+          console.warn('WAV encoding fallback to raw blob', e);
+        }
+
+        setAudioBlob(finalWavBlob);
+        const url = URL.createObjectURL(finalWavBlob);
+        setAudioUrl(url);
       };
 
       recorder.start(250); // Record in 250ms chunks
@@ -368,3 +436,4 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
     </div>
   );
 };
+

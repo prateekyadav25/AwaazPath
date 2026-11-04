@@ -14,7 +14,7 @@ interface AudioPlayerProps {
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   textToSpeak,
   language = 'hi-IN',
-  voice = 'Nalini',
+  voice = 'Shivani',
   label = 'Listen to Improved Answer',
   creditSaverMode = true,
 }) => {
@@ -205,3 +205,4 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     </div>
   );
 };
+

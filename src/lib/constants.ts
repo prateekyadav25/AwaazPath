@@ -89,10 +89,12 @@ export const LANGUAGES: {
 ];
 
 export const GNANI_VOICES = [
-  { id: 'Nalini', label: 'Nalini (Female, Expressive Indian)', gender: 'female' },
-  { id: 'Rohan', label: 'Rohan (Male, Professional Indian)', gender: 'male' },
-  { id: 'Kavya', label: 'Kavya (Female, Gentle Career Guide)', gender: 'female' },
-  { id: 'Arjun', label: 'Arjun (Male, Clear Articulation)', gender: 'male' },
+  { id: 'Shivani', label: 'Shivani (Female, Expressive Indian - Recommended)', gender: 'female' },
+  { id: 'Avinash', label: 'Avinash (Male, Professional Indian - Recommended)', gender: 'male' },
+  { id: 'Lakshmi', label: 'Lakshmi (Female, Gentle Career Guide)', gender: 'female' },
+  { id: 'Shubham', label: 'Shubham (Male, Clear Articulation)', gender: 'male' },
+  { id: 'Kalpana', label: 'Kalpana (Female, Senior Corporate Tone)', gender: 'female' },
+  { id: 'Devansh', label: 'Devansh (Male, Dynamic Tone)', gender: 'male' },
 ];
 
 export const STORAGE_KEYS = {
@@ -109,3 +111,4 @@ export const RUBRIC_WEIGHTS = {
   structure: 20,
   confidence: 15,
 };
+

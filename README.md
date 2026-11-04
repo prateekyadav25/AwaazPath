@@ -267,3 +267,4 @@ AwaazPath isn't just another mock interview tool; it is an **empowerment engine*
 Developed for the **Great Indian AI Internship Challenge by Gnani AI**.
 
 #GnaniAI #GreatIndianAIInternshipChallenge
+

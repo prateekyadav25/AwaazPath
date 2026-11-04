@@ -146,3 +146,4 @@ export function clearAllLocalData(): void {
     console.error('Failed to clear local data', e);
   }
 }
+
