@@ -146,7 +146,11 @@ export default function AnswerImprovementStudio() {
             </div>
           </div>
         ) : (
-          <AudioRecorder onAudioReady={handleAudioTranscribed} maxDurationSeconds={30} />
+          <AudioRecorder
+            onAudioReady={handleAudioTranscribed}
+            onReset={() => setEvaluation(null)}
+            maxDurationSeconds={30}
+          />
         )}
 
         <button

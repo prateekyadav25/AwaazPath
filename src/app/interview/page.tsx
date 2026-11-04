@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Mic,
@@ -42,6 +42,7 @@ function MockInterviewContent() {
   const [language, setLanguage] = useState<LanguageCode>('indic-auto');
   const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [attemptId, setAttemptId] = useState(0);
 
   // Flow State
   const [isProcessing, setIsProcessing] = useState(false);
@@ -61,23 +62,28 @@ function MockInterviewContent() {
     setCreditSaver(prefs.creditSaverMode);
   }, []);
 
-  useEffect(() => {
-    const qList = getQuestionsByCategory(category);
-    setQuestions(qList);
-    setCurrentIndex(0);
-    resetQuestionState();
-  }, [category]);
-
-  const currentQuestion: InterviewQuestion | undefined = questions[currentIndex];
-
-  const resetQuestionState = () => {
+  const clearEvaluationState = useCallback(() => {
     setTranscript(null);
     setDetectedLanguage(null);
     setEvaluation(null);
     setApiError(null);
     setIsLiveApi(false);
     setSessionCompleted(false);
-  };
+  }, []);
+
+  const resetQuestionState = useCallback(() => {
+    clearEvaluationState();
+    setAttemptId((prev) => prev + 1);
+  }, [clearEvaluationState]);
+
+  useEffect(() => {
+    const qList = getQuestionsByCategory(category);
+    setQuestions(qList);
+    setCurrentIndex(0);
+    resetQuestionState();
+  }, [category, resetQuestionState]);
+
+  const currentQuestion: InterviewQuestion | undefined = questions[currentIndex];
 
   const handleNextQuestion = () => {
     if (currentIndex < questions.length - 1) {
@@ -95,9 +101,9 @@ function MockInterviewContent() {
 
   // Called when user completes audio recording and clicks "Transcribe & Evaluate"
   const handleAudioSubmitted = async (audioBlob: Blob, durationSeconds: number) => {
+    clearEvaluationState();
     setIsProcessing(true);
     setProcessingStatus('Uploading audio to Gnani Prisma STT (prisma-v3.0)...');
-    setApiError(null);
 
     const startTime = Date.now();
 
@@ -143,7 +149,15 @@ function MockInterviewContent() {
       // Record successful STT call
       recordApiCall('stt', 'success', callDuration, 'Prisma STT v3.0 success', durationSeconds);
 
-      handleTranscriptReceived(data.transcript, data.detectedLanguageCode || 'indic-auto', true);
+      const cleanTranscript = (data.transcript || '').trim();
+      if (!cleanTranscript) {
+        setApiError(
+          'No clear speech was recognized in your recording. Please ensure your microphone is unmuted, speak closer to the mic, and try recording your answer again.'
+        );
+        return;
+      }
+
+      handleTranscriptReceived(cleanTranscript, data.detectedLanguageCode || 'indic-auto', true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error processing audio.';
       setApiError(msg);
@@ -160,14 +174,22 @@ function MockInterviewContent() {
     detectedLang?: string,
     liveApi: boolean = false
   ) => {
-    setTranscript(text);
+    const cleanText = text.trim();
+    if (!cleanText) {
+      setApiError(
+        'No clear speech was recognized in your recording. Please ensure your microphone is unmuted, speak closer to the mic, and try recording your answer again.'
+      );
+      return;
+    }
+
+    setTranscript(cleanText);
     if (detectedLang) setDetectedLanguage(detectedLang);
     setIsLiveApi(liveApi);
 
     // Evaluate answer against current question rubric
     if (currentQuestion) {
       setProcessingStatus('Evaluating answer with 100-point rubric...');
-      const evalResult = evaluateAnswer(text, currentQuestion);
+      const evalResult = evaluateAnswer(cleanText, currentQuestion);
       setEvaluation(evalResult);
 
       // Persist session
@@ -177,7 +199,7 @@ function MockInterviewContent() {
         category,
         questionId: currentQuestion.id,
         questionText: currentQuestion.questionText,
-        transcript: text,
+        transcript: cleanText,
         detectedLanguage: detectedLang,
         evaluation: evalResult,
         isDemo: !liveApi,
@@ -387,7 +409,9 @@ function MockInterviewContent() {
             </div>
 
             <AudioRecorder
+              key={`${currentQuestion.id}_attempt_${attemptId}`}
               onAudioReady={handleAudioSubmitted}
+              onReset={clearEvaluationState}
               maxDurationSeconds={30}
               disabled={isProcessing}
               creditSaverMode={creditSaver}
@@ -424,6 +448,7 @@ function MockInterviewContent() {
                 </div>
 
                 <TranscriptEditor
+                  key={`${currentQuestion.id}_${attemptId}_${transcript}`}
                   initialTranscript={transcript}
                   detectedLanguage={detectedLanguage || undefined}
                   onSave={handleTranscriptEdited}
@@ -464,6 +489,7 @@ function MockInterviewContent() {
                     {/* Gnani Timbre Voice Synthesis Player */}
                     <div className="space-y-2">
                       <AudioPlayer
+                        key={`tts_${currentQuestion.id}_${attemptId}_${evaluation.betterSampleAnswer}`}
                         textToSpeak={evaluation.betterSampleAnswer}
                         language="en-IN"
                         voice="Shivani"

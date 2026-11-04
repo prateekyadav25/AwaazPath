@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Edit3, Check, RotateCcw, FileText, Globe } from 'lucide-react';
 
 interface TranscriptEditorProps {
@@ -18,6 +18,12 @@ export const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [transcript, setTranscript] = useState(initialTranscript);
+
+  // Synchronize transcript and exit edit mode whenever initialTranscript prop updates (e.g. on retake)
+  useEffect(() => {
+    setTranscript(initialTranscript);
+    setIsEditing(false);
+  }, [initialTranscript]);
 
   const handleSave = () => {
     setIsEditing(false);

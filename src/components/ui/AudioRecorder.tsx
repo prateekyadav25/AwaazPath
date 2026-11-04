@@ -14,6 +14,7 @@ import {
 
 interface AudioRecorderProps {
   onAudioReady: (blob: Blob, durationSeconds: number) => void;
+  onReset?: () => void;
   maxDurationSeconds?: number;
   disabled?: boolean;
   creditSaverMode?: boolean;
@@ -73,6 +74,7 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
 
 export const AudioRecorder: React.FC<AudioRecorderProps> = ({
   onAudioReady,
+  onReset,
   maxDurationSeconds = 30, // 30s recommended limit for Prisma short audio
   disabled = false,
   creditSaverMode = true,
@@ -144,6 +146,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       setAudioUrl(null);
     }
     audioChunksRef.current = [];
+    onReset?.();
 
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -260,6 +263,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       URL.revokeObjectURL(audioUrl);
       setAudioUrl(null);
     }
+    onReset?.();
   };
 
   const togglePreview = () => {

@@ -26,6 +26,22 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Invalidate and revoke previous audio whenever text to speak, voice, or language changes (e.g. retake or new question)
+  useEffect(() => {
+    setAudioUrl((prevUrl) => {
+      if (prevUrl && prevUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(prevUrl);
+      }
+      return null;
+    });
+    setIsPlaying(false);
+    setEngineUsed(null);
+    setError(null);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, [textToSpeak, voice, language]);
+
   useEffect(() => {
     return () => {
       if (audioUrl && audioUrl.startsWith('blob:')) {
