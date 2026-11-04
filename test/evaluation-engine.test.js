@@ -83,5 +83,11 @@ test('AI Answer Evaluation Engine - Rubric Integrity & Scoring', async (t) => {
     assert.ok(res.overallScore <= 100, 'Score must not exceed 100');
     assert.ok(res.overallScore >= 0, 'Score must be non-negative');
   });
+
+  await t.test('penalizes off-topic responses appropriately', () => {
+    const offTopicAns = 'I like to play cricket and watch movies every weekend.';
+    const res = evaluate(offTopicAns, ['database', 'architecture', 'postgresql']);
+    assert.ok(res.scores.relevance <= 15, 'Relevance should not be high for off-topic responses');
+  });
 });
 

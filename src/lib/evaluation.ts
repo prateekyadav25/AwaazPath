@@ -36,6 +36,8 @@ const DECISIVE_PHRASES = [
   'i am confident',
   'we achieved',
   'the impact was',
+  'i spearheaded',
+  'my responsibility was',
 ];
 
 const HESITANT_PHRASES = [
@@ -50,14 +52,22 @@ const HESITANT_PHRASES = [
   'i think maybe',
   'something like that',
   'kuch aisa',
+  'i forgot',
 ];
 
 const STAR_MARKERS = {
-  situation: ['during', 'when i was', 'in my', 'at my', 'college', 'project', 'situation', 'semester', 'team'],
-  task: ['my task', 'goal', 'responsibility', 'responsible for', 'objective', 'challenge', 'needed to', 'had to'],
-  action: ['i built', 'i implemented', 'i created', 'i designed', 'i developed', 'i researched', 'i approached', 'i refactored', 'i organized'],
-  result: ['result', 'outcome', 'improved', 'increased', 'reduced', 'achieved', 'won', 'deployed', 'learned', 'concluded'],
+  situation: ['during', 'when i was', 'in my', 'at my', 'college', 'project', 'situation', 'semester', 'team', 'hackathon'],
+  task: ['my task', 'goal', 'responsibility', 'responsible for', 'objective', 'challenge', 'needed to', 'had to', 'requirement'],
+  action: ['i built', 'i implemented', 'i created', 'i designed', 'i developed', 'i researched', 'i approached', 'i refactored', 'i organized', 'i coded', 'i investigated'],
+  result: ['result', 'outcome', 'improved', 'increased', 'reduced', 'achieved', 'won', 'deployed', 'learned', 'concluded', 'delivered'],
 };
+
+// Common stop words to exclude when checking topic keyword relevance
+const STOP_WORDS = new Set([
+  'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'in', 'with', 'to', 'for', 'of', 'by',
+  'what', 'how', 'why', 'can', 'you', 'please', 'explain', 'describe', 'tell', 'me', 'about',
+  'your', 'our', 'my', 'we', 'they', 'this', 'that', 'these', 'those', 'from', 'as', 'into',
+]);
 
 export function evaluateAnswer(
   transcript: string,
@@ -71,34 +81,36 @@ export function evaluateAnswer(
   const words = cleanText ? cleanText.split(/\s+/).filter(Boolean) : [];
   const wordCount = words.length;
 
+  // Very short response (< 5 words)
   if (wordCount < 5) {
     return {
       scores: {
-        relevance: 5,
-        clarity: 5,
-        communication: 5,
-        structure: 5,
+        relevance: 2,
+        clarity: 4,
+        communication: 4,
+        structure: 2,
         confidence: 3,
-        total: 23,
+        total: 15,
       },
-      overallScore: 23,
+      overallScore: 15,
       grade: 'Critical Focus',
-      strengths: ['Attempted to speak.'],
+      strengths: ['Microphone recording was captured.'],
       weaknesses: [
-        'Answer is too brief (under 5 words).',
-        'Did not provide enough detail for meaningful evaluation.',
+        'Answer is far too brief (under 5 words).',
+        'Did not answer the question asked.',
+        'Did not provide enough context for evaluation.',
       ],
       missingPoints: question ? question.keyPoints : ['Sufficient context and explanation'],
       suggestedImprovements: [
-        'Elaborate your thoughts with specific college or project examples.',
-        'Aim for at least 60-120 words to give the interviewer adequate detail.',
+        'Speak for at least 30-60 seconds to provide an adequate explanation.',
+        'Address the core topic of the question directly.',
       ],
       betterSampleAnswer: question ? question.sampleGoodAnswer : 'Please provide a more detailed response.',
       simpleFresherAnswer:
         'Start with a direct answer, add one supporting example from your college coursework, and summarize what you learned.',
       hindiExplanation:
-        'आपका उत्तर बहुत छोटा था। साक्षात्कारकर्ता आपके सोचने के तरीके और उदाहरणों को सुनना चाहता है। कम से कम 3-4 वाक्यों में अपना अनुभव बताएं।',
-      actionableTip: 'Speak for at least 45 to 60 seconds by sharing a specific situation from your college or project journey.',
+        'आपका उत्तर बहुत छोटा था (5 शब्दों से कम)। कृपया प्रश्न को ध्यान से सुनकर कम से कम 30 सेकंड तक उत्तर दें।',
+      actionableTip: 'Speak for at least 30 to 45 seconds by sharing a specific situation from your college or project journey.',
       fillerWordsFound: [],
       wordCount,
       confidencePhrases: [],
@@ -116,7 +128,7 @@ export function evaluateAnswer(
     }
   });
 
-  // 2. CONFIDENCE & HESITATION INDICATORS (Transcript-based)
+  // 2. CONFIDENCE & HESITATION INDICATORS
   const foundConfidencePhrases: string[] = [];
   DECISIVE_PHRASES.forEach((phrase) => {
     if (lowerText.includes(phrase)) {
@@ -132,68 +144,108 @@ export function evaluateAnswer(
   });
 
   // 3. RELEVANCE SCORING (Max 25)
-  let relevanceScore = 15;
+  // Must evaluate whether the candidate actually addressed the question's specific topic!
+  let relevanceScore = 3;
   const missingPoints: string[] = [];
+  let isOffTopic = false;
 
-  if (question && question.keyPoints) {
-    let matchedPoints = 0;
-    question.keyPoints.forEach((point) => {
-      const pointWords = point
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .split(/\s+/)
-        .filter((w) => w.length > 3);
+  if (question) {
+    // A. Check topic keyword matches from question text & title
+    const questionTokens = `${question.title} ${question.questionText}`
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .split(/\s+/)
+      .filter((w) => w.length > 3 && !STOP_WORDS.has(w));
 
-      const hasMatch = pointWords.some((w) => lowerText.includes(w));
-      if (hasMatch) {
-        matchedPoints++;
-      } else {
-        missingPoints.push(point);
+    let topicMatches = 0;
+    questionTokens.forEach((token) => {
+      if (lowerText.includes(token)) {
+        topicMatches++;
       }
     });
 
-    const matchRatio = matchedPoints / question.keyPoints.length;
-    relevanceScore = Math.round(14 + matchRatio * 11);
+    const topicCoverage = questionTokens.length > 0 ? topicMatches / questionTokens.length : 0;
+
+    // B. Check key points alignment
+    let matchedKeyPoints = 0;
+    if (question.keyPoints && question.keyPoints.length > 0) {
+      question.keyPoints.forEach((point) => {
+        const pointWords = point
+          .toLowerCase()
+          .replace(/[^\w\s]/g, '')
+          .split(/\s+/)
+          .filter((w) => w.length > 3 && !STOP_WORDS.has(w));
+
+        const hasMatch = pointWords.some((w) => lowerText.includes(w));
+        if (hasMatch) {
+          matchedKeyPoints++;
+        } else {
+          missingPoints.push(point);
+        }
+      });
+    }
+
+    const keyPointsRatio = question.keyPoints?.length ? matchedKeyPoints / question.keyPoints.length : 0;
+
+    // Calculate genuine relevance
+    if (topicMatches === 0 && keyPointsRatio === 0) {
+      // Completely off-topic or irrelevant answer
+      relevanceScore = Math.min(5, Math.max(2, Math.round(wordCount > 30 ? 4 : 2)));
+      isOffTopic = true;
+    } else {
+      // Scaled relevance based on actual topic alignment
+      const combinedRelevanceRatio = topicCoverage * 0.4 + keyPointsRatio * 0.6;
+      relevanceScore = Math.round(5 + combinedRelevanceRatio * 20);
+    }
   } else {
-    // If generic question
-    relevanceScore = wordCount >= 50 ? 21 : 16;
+    relevanceScore = wordCount >= 40 ? 15 : 8;
   }
-  relevanceScore = Math.min(25, Math.max(5, relevanceScore));
+  relevanceScore = Math.min(25, Math.max(2, relevanceScore));
 
   // 4. CLARITY SCORING (Max 20)
-  // Deduct for excess fillers, reward appropriate length and punctuation
-  let clarityScore = 16;
-  const fillerCount = foundFillers.length;
-  if (fillerCount === 0) clarityScore += 3;
-  else if (fillerCount === 1) clarityScore += 1;
-  else if (fillerCount > 3) clarityScore -= Math.min(6, (fillerCount - 2) * 2);
-
-  if (wordCount >= 40 && wordCount <= 220) {
-    clarityScore += 1; // ideal length for typical interview question
-  } else if (wordCount > 300) {
-    clarityScore -= 2; // too rambling
+  // Base clarity starts from length & coherence, deducted heavily by fillers
+  let clarityScore = 6;
+  if (wordCount >= 30 && wordCount <= 200) {
+    clarityScore += 8; // Good length
+  } else if (wordCount >= 15 && wordCount < 30) {
+    clarityScore += 4; // Rather short
+  } else if (wordCount > 250) {
+    clarityScore += 3; // Rambling
   }
-  clarityScore = Math.min(20, Math.max(5, clarityScore));
+
+  // Deduct for fillers
+  const fillerCount = foundFillers.length;
+  if (fillerCount === 0) {
+    clarityScore += 5; // Clean speech
+  } else if (fillerCount === 1) {
+    clarityScore += 2;
+  } else {
+    clarityScore -= Math.min(6, (fillerCount - 1) * 2);
+  }
+
+  clarityScore = Math.min(20, Math.max(3, clarityScore));
 
   // 5. COMMUNICATION SCORING (Max 20)
-  // Evaluates professional phrasing, vocabulary variety, sentence flow
-  let commScore = 14;
+  let commScore = 5;
   const uniqueWords = new Set(words.map((w) => w.toLowerCase())).size;
-  const vocabularyRatio = uniqueWords / wordCount;
+  const vocabularyRatio = wordCount > 0 ? uniqueWords / wordCount : 0;
 
-  if (vocabularyRatio > 0.65) commScore += 3;
-  else if (vocabularyRatio > 0.5) commScore += 2;
+  if (vocabularyRatio > 0.6 && wordCount >= 25) commScore += 6;
+  else if (vocabularyRatio > 0.45 && wordCount >= 15) commScore += 3;
 
-  // Check for professional connectors (furthermore, however, specifically, therefore)
-  const professionalConnectors = ['because', 'therefore', 'furthermore', 'specifically', 'additionally', 'however', 'consequently'];
+  const professionalConnectors = ['because', 'therefore', 'furthermore', 'specifically', 'additionally', 'however', 'consequently', 'for example'];
   const hasConnectors = professionalConnectors.some((c) => lowerText.includes(c));
-  if (hasConnectors) commScore += 3;
+  if (hasConnectors) commScore += 4;
 
-  commScore = Math.min(20, Math.max(5, commScore));
+  const professionalVerbs = ['developed', 'implemented', 'managed', 'designed', 'built', 'resolved', 'analyzed', 'collaborated', 'optimized'];
+  const hasProfVerbs = professionalVerbs.some((v) => lowerText.includes(v));
+  if (hasProfVerbs) commScore += 4;
+
+  commScore = Math.min(20, Math.max(3, commScore));
 
   // 6. STRUCTURE SCORING (Max 20)
-  // STAR markers check: Situation, Task, Action, Result
-  let structureScore = 12;
+  // STAR methodology check
+  let structureScore = 4; // Baseline structure (not 12!)
   const starHits = {
     situation: STAR_MARKERS.situation.some((m) => lowerText.includes(m)),
     task: STAR_MARKERS.task.some((m) => lowerText.includes(m)),
@@ -202,18 +254,31 @@ export function evaluateAnswer(
   };
 
   const starCount = Object.values(starHits).filter(Boolean).length;
-  structureScore += starCount * 2; // +2 to +8
-  structureScore = Math.min(20, Math.max(5, structureScore));
+  structureScore += starCount * 4; // +4, +8, +12, +16
+  structureScore = Math.min(20, Math.max(3, structureScore));
 
   // 7. CONFIDENCE INDICATORS (Max 15)
-  // Based strictly on decisive vs hesitant language in the transcript
-  let confScore = 10;
-  confScore += Math.min(4, foundConfidencePhrases.length * 1.5);
-  confScore -= Math.min(4, foundHesitationPhrases.length * 1.5);
-  confScore = Math.min(15, Math.max(3, Math.round(confScore)));
+  let confScore = 5; // Baseline confidence (not 10!)
+  confScore += Math.min(6, foundConfidencePhrases.length * 2);
+  confScore -= Math.min(4, foundHesitationPhrases.length * 2);
+  confScore = Math.min(15, Math.max(2, Math.round(confScore)));
 
-  // TOTAL SCORE
-  const totalScore = relevanceScore + clarityScore + commScore + structureScore + confScore;
+  // RAW TOTAL SCORE
+  let totalScore = relevanceScore + clarityScore + commScore + structureScore + confScore;
+
+  // CRITICAL REALISM GUARDRAILS:
+  // If an answer is off-topic (Relevance < 10), it CANNOT pass or be marked Good!
+  if (isOffTopic || relevanceScore < 10) {
+    totalScore = Math.min(42, totalScore);
+    clarityScore = Math.min(12, clarityScore);
+    structureScore = Math.min(8, structureScore);
+    commScore = Math.min(10, commScore);
+  }
+
+  // If answer is very brief (< 20 words), cap at 48
+  if (wordCount < 20) {
+    totalScore = Math.min(48, totalScore);
+  }
 
   const scores: RubricScores = {
     relevance: relevanceScore,
@@ -224,63 +289,95 @@ export function evaluateAnswer(
     total: totalScore,
   };
 
+  // Grade classification based on strict standards
   let grade: EvaluationResult['grade'] = 'Needs Improvement';
-  if (totalScore >= 85) grade = 'Excellent';
-  else if (totalScore >= 70) grade = 'Good';
-  else if (totalScore >= 50) grade = 'Needs Improvement';
-  else grade = 'Critical Focus';
+  if (totalScore >= 85 && relevanceScore >= 18) {
+    grade = 'Excellent';
+  } else if (totalScore >= 70 && relevanceScore >= 14) {
+    grade = 'Good';
+  } else if (totalScore >= 45) {
+    grade = 'Needs Improvement';
+  } else {
+    grade = 'Critical Focus';
+  }
 
   // Strengths
   const strengths: string[] = [];
-  if (relevanceScore >= 20) strengths.push('Directly addressed the core themes of the interview question.');
-  if (clarityScore >= 16) strengths.push('Clear articulation with minimal distracting filler words.');
-  if (commScore >= 16) strengths.push('Professional vocabulary with coherent sentence transitions.');
-  if (starCount >= 3) strengths.push('Well-structured narrative following the STAR (Situation-Task-Action-Result) pattern.');
-  if (foundConfidencePhrases.length > 0) strengths.push(`Used decisive ownership phrasing ("${foundConfidencePhrases[0]}").`);
-  if (strengths.length === 0) strengths.push('Demonstrated genuine effort to share personal experience.');
+  if (relevanceScore >= 18) {
+    strengths.push('Directly addressed the core themes of the question.');
+  }
+  if (clarityScore >= 14 && foundFillers.length === 0) {
+    strengths.push('Spoke clearly with no distracting filler words.');
+  }
+  if (commScore >= 14) {
+    strengths.push('Used good professional vocabulary and transitional connectors.');
+  }
+  if (starCount >= 3) {
+    strengths.push('Followed the STAR method (Situation, Task, Action, Result).');
+  }
+  if (foundConfidencePhrases.length > 0) {
+    strengths.push(`Used decisive ownership phrasing ("${foundConfidencePhrases[0]}").`);
+  }
+  if (strengths.length === 0) {
+    strengths.push('Spoke in complete sentences.');
+  }
 
   // Weaknesses
   const weaknesses: string[] = [];
+  if (isOffTopic || relevanceScore < 10) {
+    weaknesses.push('Off-topic or incomplete answer: Did not directly address the core question asked.');
+  }
   if (foundFillers.length > 0) {
-    weaknesses.push(`Frequent filler word usage detected: ${foundFillers.join(', ')}.`);
+    weaknesses.push(`Frequent filler words detected: ${foundFillers.join(', ')}.`);
   }
   if (starCount < 2) {
-    weaknesses.push('Lacked clear narrative structure; did not distinctly separate the Action taken from the Result.');
+    weaknesses.push('Missing STAR structure: Failed to clearly state the action you took and the measurable result.');
   }
   if (foundHesitationPhrases.length > 0) {
-    weaknesses.push(`Tentative expressions used (${foundHesitationPhrases.join(', ')}), which weaken professional assertiveness.`);
+    weaknesses.push(`Tentative expressions used (${foundHesitationPhrases.join(', ')}), weakening assertiveness.`);
   }
-  if (wordCount < 40) {
-    weaknesses.push('Response was somewhat brief; could provide richer technical or procedural context.');
-  }
-  if (weaknesses.length === 0) {
-    weaknesses.push('Could further quantify results with specific percentages or timelines to make the impact unforgettable.');
+  if (wordCount < 30) {
+    weaknesses.push('Answer was too brief; corporate interviewers expect at least 45 to 90 seconds of detail.');
   }
 
-  // Suggested Improvements
-  const suggestedImprovements: string[] = [
-    'Replace conversational filler words with deliberate 1-second pauses.',
-    'Quantify the outcome (e.g., "reduced latency by 30%", "managed a team of 4").',
-    'Follow the STAR method: State the Situation, explain your exact Task, detail the Action you took, and conclude with the Result.',
-  ];
+  // Suggested improvements
+  const suggestedImprovements: string[] = [];
+  if (isOffTopic || relevanceScore < 10) {
+    suggestedImprovements.push('Carefully align your response with the question prompt and key points.');
+  }
+  if (foundFillers.length > 0) {
+    suggestedImprovements.push('Replace filler words like "basically" or "actually" with a silent 1-second pause.');
+  }
+  suggestedImprovements.push('Follow the STAR structure: Situation, Task, Action you took, and final Result.');
+  suggestedImprovements.push('Quantify your results with specific numbers, percentages, or time saved.');
 
   // Better sample answer & fresher answer
   const betterSampleAnswer = question ? question.sampleGoodAnswer : 'Here is an improved structure focusing on STAR.';
-  const simpleFresherAnswer =
-    'Start with: "In my college project/internship, I was responsible for [specific module]. I faced [specific problem], solved it by [specific action], and the outcome was [measurable result]." Keep sentences short and confident.';
+  const simpleFresherAnswer = question
+    ? `In my project, I worked on ${question.title.toLowerCase()}. I was responsible for the core implementation, faced real challenges, and solved them step by step.`
+    : 'Start with a direct answer, add one supporting example from your college coursework, and summarize what you learned.';
 
   // Hindi explanation
-  const hindiExplanation =
-    totalScore >= 75
-      ? 'आपका उत्तर बहुत अच्छा और पेशेवर था। आपने स्थिति को स्पष्ट रूप से समझाया। अधिक प्रभाव के लिए परिणामों में आंकड़े (numbers/percentages) जोड़ें।'
-      : 'आपके उत्तर में मुख्य बात सही थी, लेकिन संरचना (structure) को बेहतर बनाया जा सकता है। "Basically" या "Like" जैसे शब्दों के बजाय शांत विराम लें और STAR तरीके का पालन करें।';
+  let hindiExplanation = '';
+  if (isOffTopic || relevanceScore < 10) {
+    hindiExplanation =
+      'आपका उत्तर पूछे गए प्रश्न से मेल नहीं खाता है। साक्षात्कारकर्ता जिस विषय पर पूछ रहा है, उसी पर केंद्रित रहें और अपने प्रोजेक्ट या अनुभव का सीधा उदाहरण दें।';
+  } else if (totalScore >= 75) {
+    hindiExplanation =
+      'आपका उत्तर बहुत अच्छा और प्रासंगिक था! अधिक प्रभाव के लिए अपने परिणामों में आंकड़े (जैसे percentages या numbers) जोड़ें।';
+  } else {
+    hindiExplanation =
+      'आपके उत्तर की दिशा सही थी, लेकिन इसे अधिक व्यवस्थित (structured) बनाने की आवश्यकता है। STAR विधि (Situation, Task, Action, Result) का उपयोग करें और "basically" जैसे शब्दों से बचें।';
+  }
 
   // Actionable tip
-  let actionableTip = 'Pause for 1 second before answering instead of using "Basically" or "Actually".';
-  if (foundFillers.length > 0) {
-    actionableTip = `Practice speaking without "${foundFillers[0].split(' ')[0]}". Use a deliberate silent breath instead.`;
+  let actionableTip = 'Always start by directly answering the question in your first sentence.';
+  if (isOffTopic || relevanceScore < 10) {
+    actionableTip = 'Make sure your opening sentence directly repeats the core theme of the question.';
+  } else if (foundFillers.length > 0) {
+    actionableTip = `Practice pausing silently instead of saying "${foundFillers[0].split(' ')[0]}".`;
   } else if (starCount < 2) {
-    actionableTip = 'Always state the tangible outcome: end your answer with "As a result, we achieved..."';
+    actionableTip = 'End your answer with a concrete result: "As a result, we achieved..."';
   }
 
   return {
@@ -301,4 +398,3 @@ export function evaluateAnswer(
     hesitationPhrases: foundHesitationPhrases,
   };
 }
-
